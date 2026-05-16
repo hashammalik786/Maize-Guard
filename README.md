@@ -1,5 +1,5 @@
 🌽 Maize Guard AI
-
+ 
 An AI-Powered Smart Agriculture Platform for Maize Disease Detection and Intelligent Farming Assistance.
 
 Maize Guard AI is a modern full-stack AI platform designed to help farmers, agriculture students, and researchers detect maize leaf diseases instantly using Deep Learning and conversational AI.
