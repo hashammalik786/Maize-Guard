@@ -29,7 +29,7 @@ export default function History() {
     async function fetchHistory() {
       try {
         const q = query(
-          collection(db, `users/${user!.id}/predictions`),
+          collection(db, `users/${user!.uid}/predictions`),
           orderBy('createdAt', 'desc')
         );
         const querySnapshot = await getDocs(q);
@@ -51,7 +51,7 @@ export default function History() {
   const handleDelete = async (id: string) => {
     if (!user) return;
     try {
-      await deleteDoc(doc(db, `users/${user.id}/predictions/${id}`));
+      await deleteDoc(doc(db, `users/${user.uid}/predictions/${id}`));
       setPredictions(prev => prev.filter(p => p.id !== id));
     } catch (error) {
       console.error("Error deleting prediction:", error);
