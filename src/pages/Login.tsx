@@ -32,7 +32,7 @@ export default function Login() {
   const handleLogin = async () => {
     try {
       await signInWithGoogle();
-      navigate('/chatbot');
+      // Navigation is now handled by the OAuth callback redirect (AuthCallback.tsx)
     } catch (err: any) {
       console.error("Login error:", err);
       if (err.message && err.message.includes('network-request-failed')) {

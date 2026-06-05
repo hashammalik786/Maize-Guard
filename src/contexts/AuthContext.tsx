@@ -35,7 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.session?.user) {
         setUser(data.session.user);
         fetchOrCreateProfile(data.session.user);
-        navigate("/chatbot", { replace: true });
+        if (window.location.pathname === '/login' || window.location.pathname === '/' || window.location.pathname === '') {
+          navigate("/chatbot", { replace: true });
+        }
       } else {
         setLoading(false);
       }
@@ -48,7 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         setUser(session.user);
         fetchOrCreateProfile(session.user);
-        navigate("/chatbot", { replace: true });
+        if (window.location.pathname === '/login' || window.location.pathname === '/' || window.location.pathname === '') {
+          navigate("/chatbot", { replace: true });
+        }
       } else {
         setUser(null);
         setProfile(null);
