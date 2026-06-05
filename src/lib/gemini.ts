@@ -3,11 +3,17 @@ import { GoogleGenAI } from '@google/genai';
 // Fallback to import.meta.env for github repo deployed outside AI studio
 const getApiKey = () => {
   try {
-    if (import.meta.env.VITE_GEMINI_API_KEY) return import.meta.env.VITE_GEMINI_API_KEY;
-  } catch(e) {}
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_GEMINI_API_KEY) {
+      return import.meta.env.VITE_GEMINI_API_KEY;
+    }
+  } catch (e) {}
+  
   try {
-    return process.env.API_KEY || process.env.GEMINI_API_KEY || '';
-  } catch(e) {}
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+    }
+  } catch (e) {}
+  
   return '';
 };
 

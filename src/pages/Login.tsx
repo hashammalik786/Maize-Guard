@@ -7,9 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Leaf } from 'lucide-react';
 
 export default function Login() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user, signInWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = React.useState('');
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center bg-slate-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-brand-500"></div>
+      </div>
+    );
+  }
 
   if (user) {
     return <Navigate to="/chatbot" replace />;
