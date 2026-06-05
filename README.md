@@ -152,23 +152,7 @@ The disease detection system uses a Convolutional Neural Network (CNN) trained o
 
 ---
 
-## ⚙️ Installation
 
-### Frontend
-
-```bash
-npm install
-npm run dev
-```
-
-### Backend
-
-```bash
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
----
 
 ## 📸 Example Usage
 
