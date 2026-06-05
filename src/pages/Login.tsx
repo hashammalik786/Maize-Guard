@@ -11,6 +11,12 @@ export default function Login() {
   const navigate = useNavigate();
   const [error, setError] = React.useState('');
 
+  React.useEffect(() => {
+    if (!loading && user) {
+      navigate('/chatbot', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center bg-slate-50">
@@ -20,7 +26,7 @@ export default function Login() {
   }
 
   if (user) {
-    return <Navigate to="/chatbot" replace />;
+    return null; // The useEffect will handle the redirect
   }
 
   const handleLogin = async () => {

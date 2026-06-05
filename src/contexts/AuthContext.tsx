@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
   email: string | null;
@@ -23,28 +24,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      console.log("getSession:", await supabase.auth.getSession());
+    const initAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      console.log("Initial session:", data.session, error);
       console.log("getUser:", await supabase.auth.getUser());
 
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchOrCreateProfile(session.user);
+      if (data.session?.user) {
+        setUser(data.session.user);
+        fetchOrCreateProfile(data.session.user);
+        navigate("/chatbot", { replace: true });
       } else {
         setLoading(false);
       }
     };
     
-    initializeAuth();
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth event:", event, session);
-      if (session) {
+      if (session?.user) {
         setUser(session.user);
         fetchOrCreateProfile(session.user);
+        navigate("/chatbot", { replace: true });
       } else {
         setUser(null);
         setProfile(null);
@@ -53,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const fetchOrCreateProfile = async (supabaseUser: User) => {
     try {
