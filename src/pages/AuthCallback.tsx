@@ -16,9 +16,7 @@ export default function AuthCallback() {
 
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-      console.log("Code:", code);
-console.log("Data:", data);
-console.log("Error:", error);
+      
 
       if (error) {
         console.error("OAuth callback error:", error.message);
