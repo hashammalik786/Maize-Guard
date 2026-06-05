@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface UserProfile {
   email: string | null;
@@ -25,32 +25,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const initAuth = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      console.log("Initial session:", data.session, error);
-      console.log("getUser:", await supabase.auth.getUser());
+    let mounted = true;
 
-      if (data.session?.user) {
-        setUser(data.session.user);
-        fetchOrCreateProfile(data.session.user);
-        if (window.location.pathname === '/login' || window.location.pathname === '/' || window.location.pathname === '') {
-          navigate("/chatbot", { replace: true });
+    const initAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (mounted && data.session?.user) {
+          setUser(data.session.user);
+          await fetchOrCreateProfile(data.session.user);
+          if (location.pathname === '/login' || location.pathname === '/') {
+            navigate("/chatbot", { replace: true });
+          }
         }
-      } else {
-        setLoading(false);
+      } catch (e) {
+        console.error("Session fetch error", e);
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
     
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth event:", event, session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       if (session?.user) {
         setUser(session.user);
-        fetchOrCreateProfile(session.user);
-        if (window.location.pathname === '/login' || window.location.pathname === '/' || window.location.pathname === '') {
+        await fetchOrCreateProfile(session.user);
+        if (location.pathname === '/login' || location.pathname === '/') {
           navigate("/chatbot", { replace: true });
         }
       } else {
@@ -60,8 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate]); // Intentionally not including location.pathname to avoid reruns on every single navigation
 
   const fetchOrCreateProfile = async (supabaseUser: User) => {
     try {
@@ -74,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error && error.code === 'PGRST116') {
         const newProfile = {
           id: supabaseUser.id,
-          email: supabaseUser.email,
+          email: supabaseUser.email || '',
           role: 'user',
         };
         const { data: inserted, error: insertError } = await supabase
@@ -86,33 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!insertError && inserted) {
           setProfile(inserted as any);
         } else {
-          console.error("Error creating profile:", insertError);
+          console.warn("Backend missing profiles table or error:", insertError);
         }
       } else if (data) {
         setProfile(data as any);
       } else {
-        console.error("Error fetching profile:", error);
+        console.warn("Error fetching profile, or table does not exist:", error);
       }
     } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+      console.warn("Could not fetch user profile", e);
     }
   };
 
   const signInWithGoogle = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({ 
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error signing in with Google", error);
-      throw error;
-    }
+    const { error } = await supabase.auth.signInWithOAuth({ 
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+    if (error) throw error;
   };
 
   const signOut = async () => {
