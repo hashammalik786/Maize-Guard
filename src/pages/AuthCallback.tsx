@@ -7,8 +7,17 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      console.log("Callback session:", data.session, error);
+      const { data, error } = await supabase.auth.exchangeCodeForSession(
+        window.location.href
+      );
+
+      console.log("Exchange result:", data, error);
+
+      if (error) {
+        console.error("OAuth callback error:", error.message);
+        navigate("/login", { replace: true });
+        return;
+      }
 
       if (data.session) {
         navigate("/chatbot", { replace: true });
