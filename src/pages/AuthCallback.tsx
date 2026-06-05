@@ -12,34 +12,24 @@ export default function AuthCallback() {
       hasHandled.current = true;
 
       const code = new URLSearchParams(window.location.search).get("code");
-      
-      console.log("Current URL:", window.location.href);
 
-      if (code) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        console.log("Exchange result:", data, error);
+      if (!code) {
+        navigate("/login", { replace: true });
+        return;
+      }
 
-        if (error) {
-          console.error("OAuth callback error:", error.message);
-          navigate("/login", { replace: true });
-          return;
-        }
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-        if (data.session) {
-          navigate("/chatbot", { replace: true });
-        } else {
-          navigate("/login", { replace: true });
-        }
+      if (error) {
+        console.error("OAuth callback error:", error.message);
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      if (data.session) {
+        navigate("/chatbot", { replace: true });
       } else {
-        // Fallback to getSession if no code in URL (already processed or implicit flow fallback)
-        const { data, error } = await supabase.auth.getSession();
-        console.log("Session fallback:", data.session, error);
-        
-        if (data.session) {
-          navigate("/chatbot", { replace: true });
-        } else {
-          navigate("/login", { replace: true });
-        }
+        navigate("/login", { replace: true });
       }
     };
 
