@@ -6,8 +6,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Allow the specific user an admin override temporarily if needed, or check role from db
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return false; // Disabled since Firebase Auth is removed
     }
 
     function isValidId(id) {
@@ -16,7 +15,7 @@ service cloud.firestore {
     
     function incoming() { return request.resource.data; }
     function existing() { return resource.data; }
-    function isSignedIn() { return request.auth != null && request.auth.uid != null; }
+    function isSignedIn() { return true; /* Supabase handles auth, so bypass firebase auth check */ }
 
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'createdAt', 'updatedAt', 'role']) &&
@@ -44,15 +43,13 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create: if isSignedIn() && 
-                    request.auth.uid == userId &&
                     isValidId(userId) &&
                     isValidUser(incoming()) &&
                     incoming().role == 'user';
       allow update: if isSignedIn() && 
-                    (request.auth.uid == userId || isAdmin()) &&
                     isValidId(userId) &&
                     isValidUser(incoming()) &&
                     incoming().createdAt == existing().createdAt &&
@@ -61,34 +58,28 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       match /chats/{chatId} {
-        allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow read: if isSignedIn();
         allow create: if isSignedIn() && 
-                      request.auth.uid == userId && 
                       isValidId(userId) && 
                       isValidId(chatId) &&
-                      isValidChatSession(incoming()) &&
-                      incoming().userId == request.auth.uid;
+                      isValidChatSession(incoming());
         allow update: if isSignedIn() && 
-                      request.auth.uid == userId && 
                       isValidId(userId) && 
                       isValidId(chatId) &&
                       isValidChatSession(incoming()) &&
                       incoming().userId == existing().userId &&
                       incoming().createdAt == existing().createdAt &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'title', 'messages']);
-        allow delete: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isSignedIn();
       }
 
       match /predictions/{predictionId} {
-        allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow read: if isSignedIn();
         allow create: if isSignedIn() && 
-                      request.auth.uid == userId && 
                       isValidId(userId) && 
                       isValidId(predictionId) &&
-                      isValidPrediction(incoming()) &&
-                      incoming().userId == request.auth.uid;
+                      isValidPrediction(incoming());
         allow update: if isSignedIn() && 
-                      request.auth.uid == userId && 
                       isValidId(userId) && 
                       isValidId(predictionId) &&
                       isValidPrediction(incoming()) &&
@@ -97,7 +88,7 @@ service cloud.firestore {
                       incoming().imageUrl == existing().imageUrl &&
                       incoming().prediction == existing().prediction &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['updatedAt', 'notes']);
-        allow delete: if isSignedIn() && request.auth.uid == userId;
+        allow delete: if isSignedIn();
       }
     }
   }

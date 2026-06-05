@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth, googleProvider, db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabaseClient';
 
 interface UserProfile {
   email: string | null;
   role: 'user' | 'admin';
-  createdAt: number;
+  created_at?: string;
+  createdAt?: number;
 }
 
 interface AuthContextType {
@@ -25,37 +25,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        // Fetch or create profile
-        const userDocRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (!userDoc.exists()) {
-          const newProfile: UserProfile = {
-            email: firebaseUser.email,
-            role: 'user',
-            createdAt: Date.now(),
-          };
-          // We set updatedAt here too for the firestore rules requirement
-          await setDoc(userDocRef, { ...newProfile, updatedAt: Date.now() });
-          setProfile(newProfile);
-        } else {
-          setProfile(userDoc.data() as UserProfile);
-        }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchOrCreateProfile(session.user);
       } else {
-        setProfile(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return unsubscribe;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchOrCreateProfile(session.user);
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const fetchOrCreateProfile = async (supabaseUser: User) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        const newProfile = {
+          id: supabaseUser.id,
+          email: supabaseUser.email,
+          role: 'user',
+        };
+        const { data: inserted, error: insertError } = await supabase
+          .from('profiles')
+          .insert([newProfile])
+          .select()
+          .single();
+        
+        if (!insertError && inserted) {
+          setProfile(inserted as any);
+        } else {
+          console.error("Error creating profile:", insertError);
+        }
+      } else if (data) {
+        setProfile(data as any);
+      } else {
+        console.error("Error fetching profile:", error);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      if (error) throw error;
     } catch (error) {
       console.error("Error signing in with Google", error);
       throw error;
@@ -63,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await firebaseSignOut(auth);
+    await supabase.auth.signOut();
   };
 
   return (

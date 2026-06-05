@@ -84,7 +84,7 @@ export default function Chatbot() {
   useEffect(() => {
     if (!user) return;
     const fetchSessions = async () => {
-      const q = query(collection(db, `users/${user.uid}/chats`), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, `users/${user.id}/chats`), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
       const s = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ChatSession));
       setSessions(s);
@@ -99,7 +99,7 @@ export default function Chatbot() {
   useEffect(() => {
     if (!user || !currentSessionId) return;
     const loadMessages = async () => {
-      const docRef = doc(db, `users/${user.uid}/chats/${currentSessionId}`);
+      const docRef = doc(db, `users/${user.id}/chats/${currentSessionId}`);
       const d = await getDoc(docRef);
       if (d.exists() && d.data().messages) {
         setMessages(d.data().messages);
@@ -117,7 +117,7 @@ export default function Chatbot() {
 
   const saveCurrentSession = async (updatedMessages: Message[], titleUpdate?: string) => {
     if (!user || !currentSessionId) return;
-    const docRef = doc(db, `users/${user.uid}/chats/${currentSessionId}`);
+    const docRef = doc(db, `users/${user.id}/chats/${currentSessionId}`);
     
     // Determine title if not given
     let sessionTitle = titleUpdate || sessions.find(s => s.id === currentSessionId)?.title || "Agriculture Chat";
@@ -128,7 +128,7 @@ export default function Chatbot() {
 
     try {
       await setDoc(docRef, {
-        userId: user.uid,
+        userId: user.id,
         title: sessionTitle,
         createdAt: sessions.find(s => s.id === currentSessionId)?.createdAt || Date.now(),
         updatedAt: Date.now(),
@@ -233,13 +233,13 @@ export default function Chatbot() {
       const tempMsgs = [...messages, uiMsg];
       setMessages(tempMsgs);
 
-      // 2. Analyze with Gemini
-      const analysis = await analyzeMaizeLeaf(base64Data, mimeType);
+      // 2. Analyze with FastAPI + Gemini
+      const analysis = await analyzeMaizeLeaf(file, base64Data, mimeType);
 
       // 3. Save Prediction to History
       const predId = Date.now().toString();
-      await setDoc(doc(db, `users/${user.uid}/predictions/${predId}`), {
-        userId: user.uid,
+      await setDoc(doc(db, `users/${user.id}/predictions/${predId}`), {
+        userId: user.id,
         imageUrl: compressedDataUrl,
         prediction: analysis.prediction || 'Unknown',
         confidence: analysis.confidence || 0,
@@ -265,9 +265,9 @@ export default function Chatbot() {
       setMessages(finalMsgs);
       
       // Save session directly to avoid closure stale state
-      const docRef = doc(db, `users/${user.uid}/chats/${seshId}`);
+      const docRef = doc(db, `users/${user.id}/chats/${seshId}`);
       await setDoc(docRef, {
-        userId: user.uid,
+        userId: user.id,
         title: sessions.find(s => s.id === seshId)?.title || "Agriculture Chat",
         createdAt: sessions.find(s => s.id === seshId)?.createdAt || Date.now(),
         updatedAt: Date.now(),
