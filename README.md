@@ -149,22 +149,6 @@ The disease detection system uses a Convolutional Neural Network (CNN) trained o
 * Disease Class
 * Confidence Score
 
----
-
-## 🔑 Environment Variables
-
-Create a `.env` file and configure:
-
-```env
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-
-VITE_GEMINI_API_KEY=
-```
 
 ---
 
